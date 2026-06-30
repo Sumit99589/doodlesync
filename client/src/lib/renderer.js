@@ -51,7 +51,7 @@ function drawGrid(ctx, canvasW, canvasH, zoom, panX, panY) {
   const endY = startY + canvasH / zoom + gridSize * 2;
 
   ctx.beginPath();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.06)';
   ctx.lineWidth = 1 / zoom;
 
   for (let x = startX; x <= endX; x += gridSize) {
@@ -70,7 +70,7 @@ function drawGrid(ctx, canvasW, canvasH, zoom, panX, panY) {
 export function drawElement(ctx, el) {
   ctx.save();
   ctx.globalAlpha = el.opacity ?? 1;
-  ctx.strokeStyle = el.strokeColor || '#e2e8f0';
+  ctx.strokeStyle = el.strokeColor || '#2d2a32';
   ctx.fillStyle = el.fillColor || 'transparent';
   ctx.lineWidth = el.strokeWidth || 2;
   ctx.lineCap = 'round';
@@ -160,7 +160,7 @@ function drawPen(ctx, el) {
 
 function drawText(ctx, el) {
   ctx.font = `${el.fontSize || 18}px Inter, system-ui, sans-serif`;
-  ctx.fillStyle = el.strokeColor || '#e2e8f0';
+  ctx.fillStyle = el.strokeColor || '#2d2a32';
   ctx.textBaseline = 'top';
 
   const lines = (el.text || '').split('\n');
@@ -181,7 +181,7 @@ function drawSelectionBox(ctx, el, zoom) {
   const h = el.height + padding * 2;
 
   // Dashed outline
-  ctx.strokeStyle = '#60a5fa';
+  ctx.strokeStyle = '#9B5DE5';
   ctx.lineWidth = 1.5 / zoom;
   ctx.setLineDash([4 / zoom, 4 / zoom]);
   ctx.strokeRect(x, y, w, h);
@@ -189,7 +189,7 @@ function drawSelectionBox(ctx, el, zoom) {
 
   // Corner handles
   ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#60a5fa';
+  ctx.strokeStyle = '#9B5DE5';
   ctx.lineWidth = 1.5 / zoom;
 
   const corners = [

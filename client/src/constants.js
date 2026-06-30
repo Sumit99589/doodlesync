@@ -41,7 +41,7 @@ export const GRID_SIZE = 20;
 
 // ─── Default Styles ────────────────────────────────────────────────
 
-export const DEFAULT_STROKE_COLOR = '#e2e8f0';
+export const DEFAULT_STROKE_COLOR = '#2d2a32';
 export const DEFAULT_FILL_COLOR = 'transparent';
 export const DEFAULT_STROKE_WIDTH = 2;
 export const DEFAULT_OPACITY = 1;

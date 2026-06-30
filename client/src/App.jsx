@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import useRoomStore from './store/roomStore';
 import { useYjsSync } from './hooks/useYjsSync';
-import JoinRoom from './components/JoinRoom';
+import LandingPage from './components/LandingPage';
 import Canvas from './components/Canvas';
 
 function AppContent() {
@@ -18,7 +18,7 @@ export default function App() {
   }, []);
 
   if (!joined) {
-    return <JoinRoom />;
+    return <LandingPage />;
   }
 
   return <AppContent />;

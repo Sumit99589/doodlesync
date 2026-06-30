@@ -538,12 +538,14 @@ export default function Canvas() {
         if (rect && rect.width > 2 && rect.height > 2) {
           const ids = elements
             .filter((el) => {
+              if (el.hidden || el.locked) return false;
               const bb = getBoundingBox(el);
+              // Select if bounding box intersects the selection rectangle
               return (
-                bb.x >= rect.x &&
-                bb.y >= rect.y &&
-                bb.x + bb.width <= rect.x + rect.width &&
-                bb.y + bb.height <= rect.y + rect.height
+                bb.x + bb.width >= rect.x &&
+                bb.x <= rect.x + rect.width &&
+                bb.y + bb.height >= rect.y &&
+                bb.y <= rect.y + rect.height
               );
             })
             .map((el) => el.id);

@@ -63,7 +63,41 @@ export function createElement(type, x, y, options = {}) {
 // ─── Element Update ────────────────────────────────────────────────
 
 export function updateElement(element, updates) {
-  return { ...element, ...updates };
+  let nextElement = { ...element, ...updates };
+
+  const dx = updates.x !== undefined ? updates.x - element.x : 0;
+  const dy = updates.y !== undefined ? updates.y - element.y : 0;
+
+  const scaleX = (updates.width !== undefined && element.width !== 0) ? updates.width / element.width : 1;
+  const scaleY = (updates.height !== undefined && element.height !== 0) ? updates.height / element.height : 1;
+
+  const hasTranslation = dx !== 0 || dy !== 0;
+  const hasScaling = scaleX !== 1 || scaleY !== 1;
+
+  if ((hasTranslation || hasScaling) && (element.type === 'pen' || element.type === 'arrow')) {
+    const transformPoint = (p) => {
+      let px = p.x;
+      let py = p.y;
+      if (hasScaling) {
+        px = element.x + (px - element.x) * scaleX;
+        py = element.y + (py - element.y) * scaleY;
+      }
+      if (hasTranslation) {
+        px += dx;
+        py += dy;
+      }
+      return { ...p, x: px, y: py };
+    };
+
+    if (nextElement.points) {
+      nextElement.points = nextElement.points.map(transformPoint);
+    }
+    if (nextElement.smoothedPoints) {
+      nextElement.smoothedPoints = nextElement.smoothedPoints.map(transformPoint);
+    }
+  }
+
+  return nextElement;
 }
 
 // ─── Finalize Freehand (apply Chaikin smoothing) ───────────────────

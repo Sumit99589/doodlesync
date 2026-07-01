@@ -22,6 +22,28 @@ import PresenceBar from './PresenceBar';
 import CursorOverlay from './CursorOverlay';
 import ChatPanel from './ChatPanel';
 
+let measurementCanvas = null;
+let measurementCtx = null;
+
+function measureTextDimensions(text, fontSize) {
+  if (!measurementCanvas) {
+    measurementCanvas = document.createElement('canvas');
+    measurementCtx = measurementCanvas.getContext('2d');
+  }
+  measurementCtx.font = `${fontSize}px Inter, system-ui, sans-serif`;
+  const lines = text.split('\n');
+  let maxWidth = 0;
+  for (const line of lines) {
+    const metrics = measurementCtx.measureText(line);
+    if (metrics.width > maxWidth) {
+      maxWidth = metrics.width;
+    }
+  }
+  const lineHeight = fontSize * 1.3;
+  const height = lines.length * lineHeight;
+  return { width: Math.max(50, maxWidth), height: Math.max(lineHeight, height) };
+}
+
 export default function Canvas() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -50,6 +72,16 @@ export default function Canvas() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const [editingTextEl, setEditingTextEl] = useState(null);
+  const [editText, setEditText] = useState('');
+
+  // ─── Commit an element to the shared Yjs array ─────
+  const commitElement = useCallback((element) => {
+    const yArr = getElementsArray();
+    if (!yArr) return;
+    yArr.push([element]);
+  }, []);
+
   const drawStateRef = useRef({
     activeElement: null,
     startX: 0,
@@ -103,7 +135,7 @@ export default function Canvas() {
   // ─── Render loop ────────────────────────────────────
   useEffect(() => {
     dirtyRef.current = true;
-  }, [elements, selectedIds, zoom, panX, panY]);
+  }, [elements, selectedIds, zoom, panX, panY, editingTextEl]);
 
   useEffect(() => {
     const loop = () => {
@@ -119,7 +151,7 @@ export default function Canvas() {
             zoom,
             panX,
             panY,
-            elements,
+            elements: elements.filter((el) => el.id !== editingTextEl?.id),
             selectedIds,
             activePreview: drawStateRef.current.activeElement,
           });
@@ -130,7 +162,7 @@ export default function Canvas() {
 
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [zoom, panX, panY, elements, selectedIds]);
+  }, [zoom, panX, panY, elements, selectedIds, editingTextEl]);
 
   // ─── Keyboard shortcuts ─────────────────────────────
   useEffect(() => {
@@ -342,17 +374,8 @@ export default function Canvas() {
         }
 
         case TOOLS.TEXT: {
-          const count = elements.filter((el) => el.type === 'text').length;
-          const newEl = createElement('text', x, y, {
-            strokeColor,
-            fillColor: 'transparent',
-            strokeWidth,
-            opacity,
-            text: 'Text',
-            name: `Text ${count + 1}`,
-          });
-          commitElement(newEl);
-          setSelectedIds([newEl.id]);
+          ds.startX = x;
+          ds.startY = y;
           break;
         }
 
@@ -381,7 +404,7 @@ export default function Canvas() {
         }
       }
     },
-    [tool, zoom, panX, panY, elements, selectedIds, strokeColor, fillColor, strokeWidth, opacity, screenToWorld, clearSelection, setSelectedIds]
+    [tool, zoom, panX, panY, elements, selectedIds, strokeColor, fillColor, strokeWidth, opacity, screenToWorld, clearSelection, setSelectedIds, commitElement]
   );
 
   // ─── Mouse Move ─────────────────────────────────────
@@ -537,8 +560,49 @@ export default function Canvas() {
 
   // ─── Mouse Up ───────────────────────────────────────
   const handleMouseUp = useCallback(
-    () => {
+    (e) => {
+      const { x, y } = screenToWorld(e.clientX, e.clientY);
       const ds = drawStateRef.current;
+      const isClick = Math.hypot(x - ds.startX, y - ds.startY) < 5;
+
+      if (isClick && (tool === TOOLS.SELECT || tool === TOOLS.TEXT)) {
+        let hitTextElement = null;
+        for (let i = elements.length - 1; i >= 0; i--) {
+          if (elements[i].hidden || elements[i].locked) continue;
+          if (elements[i].type === 'text' && hitTest(elements[i], x, y, zoom)) {
+            hitTextElement = elements[i];
+            break;
+          }
+        }
+        if (hitTextElement) {
+          setSelectedIds([hitTextElement.id]);
+          setEditingTextEl(hitTextElement);
+          setEditText(hitTextElement.text);
+          setIsDragging(false);
+          setIsPanning(false);
+          setIsResizing(false);
+          setIsSelecting(false);
+          setIsDrawing(false);
+          return;
+        }
+
+        if (tool === TOOLS.TEXT) {
+          const count = elements.filter((el) => el.type === 'text').length;
+          const newEl = createElement('text', x, y, {
+            strokeColor,
+            fillColor: 'transparent',
+            strokeWidth,
+            opacity,
+            text: '',
+            name: `Text ${count + 1}`,
+          });
+          commitElement(newEl);
+          setSelectedIds([newEl.id]);
+          setEditingTextEl(newEl);
+          setEditText('');
+          return;
+        }
+      }
 
       if (isPanning) {
         setIsPanning(false);
@@ -599,15 +663,8 @@ export default function Canvas() {
         setIsDrawing(false);
       }
     },
-    [isPanning, isDragging, isResizing, isSelecting, isDrawing, elements, setSelectedIds]
+    [isPanning, isDragging, isResizing, isSelecting, isDrawing, tool, elements, zoom, panX, panY, selectedIds, strokeColor, fillColor, strokeWidth, opacity, screenToWorld, commitElement, setSelectedIds, setEditingTextEl, setEditText]
   );
-
-  // ─── Commit an element to the shared Yjs array ─────
-  const commitElement = useCallback((element) => {
-    const yArr = getElementsArray();
-    if (!yArr) return;
-    yArr.push([element]);
-  }, []);
 
   // ─── Scroll to zoom ────────────────────────────────
   const handleWheel = useCallback(
@@ -645,31 +702,48 @@ export default function Canvas() {
   }, []);
 
   // ─── Inline text editing ────────────────────────────
+  const handleTextEditComplete = useCallback((id, newText) => {
+    if (!editingTextEl) return;
+    const yArr = getElementsArray();
+    const ydoc = getYDoc();
+    if (!yArr || !ydoc) return;
+
+    const cleanText = newText.trim();
+
+    ydoc.transact(() => {
+      for (let j = 0; j < yArr.length; j++) {
+        const currentEl = yArr.get(j);
+        if (currentEl.id === id) {
+          if (cleanText === '') {
+            yArr.delete(j, 1);
+          } else {
+            const dims = measureTextDimensions(newText, currentEl.fontSize || 18);
+            const updated = updateElement(currentEl, {
+              text: newText,
+              width: dims.width,
+              height: dims.height,
+            });
+            yArr.delete(j, 1);
+            yArr.insert(j, [updated]);
+          }
+          break;
+        }
+      }
+    });
+    setEditingTextEl(null);
+    setEditText('');
+  }, [editingTextEl]);
+
   const handleDoubleClick = useCallback(
     (e) => {
-      if (tool !== TOOLS.SELECT) return;
+      if (tool !== TOOLS.SELECT && tool !== TOOLS.TEXT) return;
       const { x, y } = screenToWorld(e.clientX, e.clientY);
 
       for (let i = elements.length - 1; i >= 0; i--) {
         if (elements[i].type === 'text' && hitTest(elements[i], x, y, zoom)) {
           const el = elements[i];
-          const newText = prompt('Edit text:', el.text);
-          if (newText !== null) {
-            const yArr = getElementsArray();
-            const ydoc = getYDoc();
-            if (yArr && ydoc) {
-              ydoc.transact(() => {
-                for (let j = 0; j < yArr.length; j++) {
-                  if (yArr.get(j).id === el.id) {
-                    const updated = updateElement(el, { text: newText });
-                    yArr.delete(j, 1);
-                    yArr.insert(j, [updated]);
-                    break;
-                  }
-                }
-              });
-            }
-          }
+          setEditingTextEl(el);
+          setEditText(el.text);
           break;
         }
       }
@@ -719,6 +793,50 @@ export default function Canvas() {
           onDoubleClick={handleDoubleClick}
         />
         <CursorOverlay />
+
+        {editingTextEl && (
+          <textarea
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            onBlur={() => handleTextEditComplete(editingTextEl.id, editText)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleTextEditComplete(editingTextEl.id, editText);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setEditingTextEl(null);
+                setEditText('');
+              }
+            }}
+            autoFocus
+            onFocus={(e) => {
+              const val = e.target.value;
+              e.target.value = '';
+              e.target.value = val;
+            }}
+            style={{
+              position: 'absolute',
+              left: `${editingTextEl.x * zoom + panX - 6}px`,
+              top: `${editingTextEl.y * zoom + panY - 4}px`,
+              width: `${Math.max(120, measureTextDimensions(editText, editingTextEl.fontSize || 18).width) * zoom + 16}px`,
+              height: `${Math.max(24, measureTextDimensions(editText, editingTextEl.fontSize || 18).height) * zoom + 12}px`,
+              fontSize: `${(editingTextEl.fontSize || 18) * zoom}px`,
+              fontFamily: 'Inter, system-ui, sans-serif',
+              color: editingTextEl.strokeColor || '#2d2a32',
+              background: 'rgba(255, 255, 255, 0.95)',
+              border: '1.5px dashed #9B5DE5',
+              borderRadius: '4px',
+              padding: '4px 6px',
+              outline: 'none',
+              resize: 'none',
+              overflow: 'hidden',
+              lineHeight: 1.3,
+              zIndex: 100,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            }}
+          />
+        )}
 
         {/* Zoom controls */}
         <div className="zoom-controls">

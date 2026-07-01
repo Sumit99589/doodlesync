@@ -4,9 +4,6 @@ import useRoomStore from '../store/roomStore';
 import {
   initYjs,
   destroyYjs,
-  getElementsArray,
-  getAwareness,
-  getUndoManager,
 } from '../lib/yjs';
 
 /**
@@ -16,7 +13,7 @@ import {
  * - Tracks undo/redo availability.
  */
 export function useYjsSync() {
-  const { roomId, token, userName, sessionId } = useRoomStore();
+  const { roomId, token, userName, sessionId, showToast } = useRoomStore();
   const setElements = useCanvasStore((s) => s.setElements);
   const setCanUndo = useCanvasStore((s) => s.setCanUndo);
   const setCanRedo = useCanvasStore((s) => s.setCanRedo);
@@ -43,6 +40,8 @@ export function useYjsSync() {
     // Initial sync
     syncElements();
 
+    let previousUsers = [];
+
     // Sync awareness → Zustand (connected users)
     const syncAwareness = () => {
       const states = awareness.getStates();
@@ -56,6 +55,16 @@ export function useYjsSync() {
           });
         }
       });
+
+      if (previousUsers.length > 0) {
+        for (const prev of previousUsers) {
+          if (prev.sessionId !== sessionId && !users.some((u) => u.sessionId === prev.sessionId)) {
+            showToast(`${prev.name} left the room`, 'info');
+          }
+        }
+      }
+
+      previousUsers = users;
       setConnectedUsers(users);
     };
 

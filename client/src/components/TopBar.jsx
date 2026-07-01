@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import useCanvasStore from '../store/canvasStore';
 import useRoomStore from '../store/roomStore';
 import { getUndoManager } from '../lib/yjs';
@@ -20,8 +22,9 @@ export default function TopBar() {
   const token = useRoomStore((s) => s.token);
   const showToast = useRoomStore((s) => s.showToast);
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const handleDeleteRoom = async () => {
-    if (!window.confirm("Are you sure you want to permanently delete this room? This will erase all drawings and kick all users out of this room.")) return;
     try {
       const res = await fetch(`/api/rooms/${roomId}`, {
         method: 'DELETE',
@@ -61,7 +64,7 @@ export default function TopBar() {
         <button className="topbar-btn-text" onClick={leaveRoom} title="Leave room">
           Leave
         </button>
-        <button className="topbar-btn-text topbar-btn-delete" onClick={handleDeleteRoom} title="Delete room permanently">
+        <button className="topbar-btn-text topbar-btn-delete" onClick={() => setShowDeleteModal(true)} title="Delete room permanently">
           Delete
         </button>
       </div>
@@ -167,6 +170,37 @@ export default function TopBar() {
           ↷
         </button>
       </div>
+
+      {showDeleteModal && createPortal(
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <h3 className="modal-title">Delete Room</h3>
+            <p className="modal-message">
+              Are you sure you want to permanently delete this room? This will erase all drawings and kick all users out of this room.
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="modal-btn modal-btn-cancel"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="modal-btn modal-btn-danger"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  handleDeleteRoom();
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

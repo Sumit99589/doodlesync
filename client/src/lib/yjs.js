@@ -3,6 +3,7 @@ import { encoding, decoding } from 'lib0';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as syncProtocol from 'y-protocols/sync';
 import { getCursorColor } from '../constants';
+import useRoomStore from '../store/roomStore';
 
 const MSG_SYNC = 0;
 const MSG_AWARENESS = 1;
@@ -106,7 +107,12 @@ function connectWs(roomId, token) {
     }
   };
 
-  ws.onclose = () => {
+  ws.onclose = (event) => {
+    if (event.code === 4000) {
+      console.log('[yjs] Room was deleted by owner. Kicking...');
+      useRoomStore.getState().leaveRoom();
+      return;
+    }
     console.log('[yjs] WebSocket disconnected, reconnecting...');
     scheduleReconnect(roomId, token);
   };

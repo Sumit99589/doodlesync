@@ -255,6 +255,7 @@ export default function LandingPage() {
     password, setPassword,
     showPassword, setShowPassword,
     error, loading,
+    action, setAction,
     handleSubmit,
   } = useJoinRoom();
 
@@ -335,11 +336,17 @@ export default function LandingPage() {
         </p>
 
         <div className="hero-ctas">
-          <button className="hero-btn-primary wobbly" onClick={() => scrollTo('join-section')}>
-            Start Drawing <ArrowRightIcon />
+          <button className="hero-btn-primary" onClick={() => scrollTo('join-section')}>
+            <span className="hero-btn-primary-bg"></span>
+            <span className="hero-btn-content">
+              Start Drawing <ArrowRightIcon />
+            </span>
           </button>
-          <button className="hero-btn-secondary wobbly" onClick={() => scrollTo('steps-section')}>
-            See how it works
+          <button className="hero-btn-secondary" onClick={() => scrollTo('steps-section')}>
+            <span className="hero-btn-secondary-bg"></span>
+            <span className="hero-btn-content">
+              See how it works
+            </span>
           </button>
         </div>
       </section>
@@ -476,15 +483,33 @@ export default function LandingPage() {
 
         <div className="join-card-wrapper">
           {/* Sketchy SVG border */}
-          <svg className="join-card-border-svg" viewBox="0 0 448 400" preserveAspectRatio="none">
+          <svg className="join-card-border-svg" viewBox="0 0 448 440" preserveAspectRatio="none">
             <rect
               className={`join-card-border-rect ${joinInView ? 'drawn' : ''} ${error ? 'error-border' : ''}`}
               x="4" y="4"
-              width="440" height="392"
+              width="440" height="432"
             />
           </svg>
 
           <div className="join-form-card">
+            {/* Tabs for Join vs Create */}
+            <div className="join-tabs">
+              <button
+                type="button"
+                className={`join-tab ${action === 'join' ? 'active' : ''}`}
+                onClick={() => setAction('join')}
+              >
+                Join Room
+              </button>
+              <button
+                type="button"
+                className={`join-tab ${action === 'create' ? 'active' : ''}`}
+                onClick={() => setAction('create')}
+              >
+                Create Room
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="join-form-inner">
               <div className="join-field-group">
                 <label htmlFor="landing-roomName" className="join-field-label">Room Name</label>
@@ -533,12 +558,14 @@ export default function LandingPage() {
               )}
 
               <button type="submit" className="join-submit-btn" disabled={loading}>
-                {loading ? <span className="join-spinner" /> : 'Join Room'}
+                {loading ? <span className="join-spinner" /> : (action === 'join' ? 'Join Room' : 'Create Room')}
               </button>
             </form>
 
             <p className="join-hint-text">
-              No account needed. First one in sets the password.
+              {action === 'join'
+                ? 'Enter the password of an existing room to join your team.'
+                : 'No account needed. The first one to join a room sets the password.'}
             </p>
           </div>
         </div>

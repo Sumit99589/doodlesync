@@ -13,7 +13,7 @@ if (!JWT_SECRET) {
  * - If it exists and the password matches, return a session token.
  * - If it exists and the password doesn't match, throw an error.
  */
-export async function joinRoom(roomName, password) {
+export async function joinRoom(roomName, password, action) {
   const client = await pool.connect();
   try {
     const existing = await client.query(
@@ -21,7 +21,16 @@ export async function joinRoom(roomName, password) {
       [roomName]
     );
 
-    if (existing.rows.length > 0) {
+    const exists = existing.rows.length > 0;
+
+    if (action === 'create' && exists) {
+      throw new Error('Room already exists');
+    }
+    if (action === 'join' && !exists) {
+      throw new Error('Room does not exist');
+    }
+
+    if (exists) {
       // Room exists — verify password
       const room = existing.rows[0];
       const match = await bcrypt.compare(password, room.password_hash);
@@ -67,3 +76,11 @@ export async function getRoomById(roomId) {
   );
   return result.rows[0] || null;
 }
+
+/**
+ * Permanently delete a room by ID from the DB.
+ */
+export async function deleteRoom(roomId) {
+  await pool.query('DELETE FROM rooms WHERE id = $1', [roomId]);
+}
+

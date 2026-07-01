@@ -12,14 +12,25 @@ function AppContent() {
 export default function App() {
   const joined = useRoomStore((s) => s.joined);
   const tryRestore = useRoomStore((s) => s.tryRestore);
+  const toast = useRoomStore((s) => s.toast);
+  const hideToast = useRoomStore((s) => s.hideToast);
 
   useEffect(() => {
     tryRestore();
   }, []);
 
-  if (!joined) {
-    return <LandingPage />;
-  }
+  return (
+    <>
+      {!joined ? <LandingPage /> : <AppContent />}
 
-  return <AppContent />;
+      {toast && (
+        <div className="toast-container">
+          <div className={`toast-box toast-box-${toast.type}`}>
+            <span>{toast.message}</span>
+            <button className="toast-close" onClick={hideToast}>✕</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

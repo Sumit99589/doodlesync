@@ -150,28 +150,40 @@ body.landing-body {
 }
 
 .hero-btn-primary {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 14px 32px;
-  background: var(--coral);
+  background: transparent;
   color: #fff;
   font-family: 'Nunito', sans-serif;
   font-weight: 700;
   font-size: 16px;
   border: none;
-  border-radius: 50px;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.2s;
-  position: relative;
+  transition: transform 0.15s;
+}
+
+.hero-btn-primary-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--coral);
+  border-radius: 50px;
+  z-index: 1;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.hero-btn-primary:hover .hero-btn-primary-bg {
+  box-shadow: 0 6px 24px rgba(255, 107, 107, 0.4);
 }
 
 .hero-btn-primary:hover {
   transform: scale(1.03);
-  box-shadow: 0 6px 24px rgba(255, 107, 107, 0.4);
 }
 
 .hero-btn-secondary {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -181,16 +193,35 @@ body.landing-body {
   font-family: 'Nunito', sans-serif;
   font-weight: 700;
   font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.hero-btn-secondary-bg {
+  position: absolute;
+  inset: 0;
+  background: transparent;
   border: 2px solid var(--violet);
   border-radius: 50px;
-  cursor: pointer;
-  transition: transform 0.15s, background 0.2s, color 0.2s;
-  position: relative;
+  z-index: 1;
+  transition: background 0.2s;
+}
+
+.hero-btn-secondary:hover .hero-btn-secondary-bg {
+  background: rgba(155, 93, 229, 0.08);
 }
 
 .hero-btn-secondary:hover {
   transform: scale(1.03);
-  background: rgba(155, 93, 229, 0.08);
+}
+
+.hero-btn-content {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ─── Hero Background Shapes ────────────────────────────────────── */
@@ -806,3 +837,38 @@ body.landing-body {
     padding: 28px 20px;
   }
 }
+
+.join-tabs {
+  display: flex;
+  background: #faf7f4;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 24px;
+  border: 2px solid var(--warm-gray-border);
+}
+
+.join-tab {
+  flex: 1;
+  text-align: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 10px;
+  color: var(--text-body);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.join-tab:hover {
+  color: var(--text-dark);
+}
+
+.join-tab.active {
+  background: #fff;
+  color: var(--violet);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+

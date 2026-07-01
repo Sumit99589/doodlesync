@@ -11,6 +11,7 @@ export default function useJoinRoom() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [action, setAction] = useState('join'); // 'join' or 'create'
   const setRoom = useRoomStore((s) => s.setRoom);
 
   const handleSubmit = async (e) => {
@@ -24,7 +25,7 @@ export default function useJoinRoom() {
       const res = await fetch('/api/rooms/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomName: roomName.trim(), password }),
+        body: JSON.stringify({ roomName: roomName.trim(), password, action }),
       });
 
       const data = await res.json();
@@ -51,6 +52,8 @@ export default function useJoinRoom() {
     setShowPassword,
     error,
     loading,
+    action,
+    setAction,
     handleSubmit,
   };
 }

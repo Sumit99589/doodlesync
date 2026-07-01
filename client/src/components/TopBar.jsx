@@ -16,6 +16,32 @@ export default function TopBar() {
   const setOpacity = useCanvasStore((s) => s.setOpacity);
   const roomName = useRoomStore((s) => s.roomName);
   const leaveRoom = useRoomStore((s) => s.leaveRoom);
+  const roomId = useRoomStore((s) => s.roomId);
+  const token = useRoomStore((s) => s.token);
+  const showToast = useRoomStore((s) => s.showToast);
+
+  const handleDeleteRoom = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete this room? This will erase all drawings and kick all users out of this room.")) return;
+    try {
+      const res = await fetch(`/api/rooms/${roomId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showToast("Room permanently deleted.", "success");
+        leaveRoom();
+      } else {
+        const errorText = await res.text();
+        console.error('[DELETE] Failed response:', res.status, errorText);
+        showToast(`Failed to delete room: ${errorText || res.statusText}`, "error");
+      }
+    } catch (err) {
+      console.error('[DELETE] Request error:', err);
+      showToast("Error deleting room.", "error");
+    }
+  };
 
   const handleUndo = () => {
     const um = getUndoManager();
@@ -29,11 +55,14 @@ export default function TopBar() {
 
   return (
     <div className="topbar">
-      {/* Room name */}
-      <div className="topbar-section">
+      {/* Room name & controls */}
+      <div className="topbar-section" style={{ gap: '8px' }}>
         <span className="topbar-room-name">{roomName}</span>
-        <button className="topbar-leave-btn" onClick={leaveRoom} title="Leave room">
-          ✕
+        <button className="topbar-btn-text" onClick={leaveRoom} title="Leave room">
+          Leave
+        </button>
+        <button className="topbar-btn-text topbar-btn-delete" onClick={handleDeleteRoom} title="Delete room permanently">
+          Delete
         </button>
       </div>
 

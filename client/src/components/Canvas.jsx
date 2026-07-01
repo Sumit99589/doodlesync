@@ -357,6 +357,7 @@ export default function Canvas() {
         }
 
         case TOOLS.ERASER: {
+          setIsDrawing(true);
           // Delete the topmost element under cursor (skip hidden & locked)
           for (let i = elements.length - 1; i >= 0; i--) {
             if (elements[i].hidden || elements[i].locked) continue;
@@ -478,35 +479,60 @@ export default function Canvas() {
         return;
       }
 
-      // Drawing shapes
-      if (isDrawing && ds.activeElement) {
-        switch (ds.activeElement.type) {
-          case 'rectangle':
-          case 'ellipse': {
-            ds.activeElement = updateElement(ds.activeElement, {
-              x: Math.min(ds.startX, x),
-              y: Math.min(ds.startY, y),
-              width: Math.abs(x - ds.startX),
-              height: Math.abs(y - ds.startY),
-            });
-            break;
+      // Drawing shapes or Erasing
+      if (isDrawing) {
+        if (tool === TOOLS.ERASER) {
+          // Delete elements under cursor as we drag (skip hidden & locked)
+          for (let i = elements.length - 1; i >= 0; i--) {
+            if (elements[i].hidden || elements[i].locked) continue;
+            if (hitTest(elements[i], x, y, zoom)) {
+              const yArr = getElementsArray();
+              const ydoc = getYDoc();
+              if (yArr && ydoc) {
+                ydoc.transact(() => {
+                  for (let j = 0; j < yArr.length; j++) {
+                    if (yArr.get(j).id === elements[i].id) {
+                      yArr.delete(j, 1);
+                      break;
+                    }
+                  }
+                });
+              }
+              break;
+            }
           }
-          case 'arrow': {
-            ds.activeElement = updateElement(ds.activeElement, {
-              points: [ds.activeElement.points[0], { x, y }],
-            });
-            break;
-          }
-          case 'pen': {
-            const pts = [...ds.activeElement.points, { x, y }];
-            ds.activeElement = updateElement(ds.activeElement, { points: pts });
-            break;
-          }
+          return;
         }
-        dirtyRef.current = true;
+
+        if (ds.activeElement) {
+          switch (ds.activeElement.type) {
+            case 'rectangle':
+            case 'ellipse': {
+              ds.activeElement = updateElement(ds.activeElement, {
+                x: Math.min(ds.startX, x),
+                y: Math.min(ds.startY, y),
+                width: Math.abs(x - ds.startX),
+                height: Math.abs(y - ds.startY),
+              });
+              break;
+            }
+            case 'arrow': {
+              ds.activeElement = updateElement(ds.activeElement, {
+                points: [ds.activeElement.points[0], { x, y }],
+              });
+              break;
+            }
+            case 'pen': {
+              const pts = [...ds.activeElement.points, { x, y }];
+              ds.activeElement = updateElement(ds.activeElement, { points: pts });
+              break;
+            }
+          }
+          dirtyRef.current = true;
+        }
       }
     },
-    [isPanning, isDragging, isResizing, isSelecting, isDrawing, zoom, panX, panY, selectedIds, screenToWorld, setPan]
+    [isPanning, isDragging, isResizing, isSelecting, isDrawing, tool, elements, zoom, panX, panY, selectedIds, screenToWorld, setPan]
   );
 
   // ─── Mouse Up ───────────────────────────────────────
@@ -556,18 +582,20 @@ export default function Canvas() {
         return;
       }
 
-      if (isDrawing && ds.activeElement) {
-        // Arrow uses click-click pattern, not drag
-        if (ds.activeElement.type === 'arrow') return;
+      if (isDrawing) {
+        if (ds.activeElement) {
+          // Arrow uses click-click pattern, not drag
+          if (ds.activeElement.type === 'arrow') return;
 
-        // Finalize pen with Chaikin smoothing
-        let finalEl = ds.activeElement;
-        if (finalEl.type === 'pen') {
-          finalEl = finalizePenElement(finalEl);
+          // Finalize pen with Chaikin smoothing
+          let finalEl = ds.activeElement;
+          if (finalEl.type === 'pen') {
+            finalEl = finalizePenElement(finalEl);
+          }
+
+          commitElement(finalEl);
+          ds.activeElement = null;
         }
-
-        commitElement(finalEl);
-        ds.activeElement = null;
         setIsDrawing(false);
       }
     },

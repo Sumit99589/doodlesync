@@ -11,7 +11,7 @@ import * as awarenessProtocol from 'y-protocols/awareness';
 import * as syncProtocol from 'y-protocols/sync';
 
 import { initDb } from './db.js';
-import { joinRoom, verifyToken, getRoomById } from './rooms.js';
+import { joinRoom, verifyToken, getRoomById, deleteRoom } from './rooms.js';
 import {
   getOrCreateRoom,
   addConnection,
@@ -30,15 +30,19 @@ app.use(express.json());
 
 app.post('/api/rooms/join', async (req, res) => {
   try {
-    const { roomName, password } = req.body;
+    const { roomName, password, action } = req.body;
     if (!roomName || !password) {
       return res.status(400).json({ error: 'roomName and password are required' });
     }
-    const result = await joinRoom(roomName, password);
+    const result = await joinRoom(roomName, password, action);
     res.json(result);
   } catch (err) {
-    if (err.message === 'Wrong password for this room') {
-      return res.status(403).json({ error: err.message });
+    if (
+      err.message === 'Wrong password for this room' ||
+      err.message === 'Room already exists' ||
+      err.message === 'Room does not exist'
+    ) {
+      return res.status(400).json({ error: err.message });
     }
     console.error('[api] join error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -60,6 +64,46 @@ app.get('/api/rooms/:roomId', async (req, res) => {
     res.json(room);
   } catch (err) {
     console.error('[api] room fetch error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/rooms/:roomId', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing token' });
+    }
+    const decoded = verifyToken(authHeader.slice(7));
+    console.log('[DELETE] decoded:', decoded, 'params roomId:', req.params.roomId);
+    if (!decoded || decoded.roomId !== req.params.roomId) {
+      console.log('[DELETE] Verification failed:', !decoded ? 'no decoded' : `roomId mismatch: ${decoded.roomId} !== ${req.params.roomId}`);
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const roomId = req.params.roomId;
+
+    // Delete room from activeRooms map and close any active websocket connections
+    const activeRooms = getActiveRooms();
+    if (activeRooms.has(roomId)) {
+      const room = activeRooms.get(roomId);
+      if (room.saveTimer) {
+        clearTimeout(room.saveTimer);
+      }
+      for (const ws of room.conns) {
+        ws.close(4000, 'Room deleted');
+      }
+      room.ydoc.destroy();
+      activeRooms.delete(roomId);
+    }
+
+    // Delete from DB
+    await deleteRoom(roomId);
+
+    console.log(`[persistence] Room ${roomId} permanently deleted`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[api] room delete error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

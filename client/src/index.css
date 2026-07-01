@@ -379,22 +379,34 @@ body {
   white-space: nowrap;
 }
 
-.topbar-leave-btn {
-  background: none;
+.topbar-btn-text {
+  font-family: 'Nunito', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  color: #5c5768;
+  background: rgba(0, 0, 0, 0.05);
   border: none;
-  color: #9992a6;
+  border-radius: 6px;
+  padding: 4px 10px;
   cursor: pointer;
-  font-size: 14px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  transition: all 0.15s;
-  font-family: inherit;
+  transition: all 0.15s ease;
 }
 
-.topbar-leave-btn:hover {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
+.topbar-btn-text:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #2d2a32;
 }
+
+.topbar-btn-delete {
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+}
+
+.topbar-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
 
 .topbar-label {
   display: flex;
@@ -950,4 +962,71 @@ body {
   line-height: 1;
   box-shadow: 0 0 6px rgba(255, 107, 107, 0.5);
 }
+
+/* ─── Toast Notification ────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  background: #fff;
+  color: #2d2a32;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  border: 2px solid var(--warm-gray-border);
+  animation: toast-enter 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: auto;
+}
+
+.toast-box-success {
+  border-color: #4ECDC4;
+  color: #2b7a78;
+  background: #f0fdfa;
+}
+
+.toast-box-error {
+  border-color: #FF6B6B;
+  color: #c94a4a;
+  background: #fff5f5;
+}
+
+.toast-box-info {
+  border-color: #9B5DE5;
+  color: #6d28d9;
+  background: #faf5ff;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: currentColor;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 14px;
+  margin-left: 12px;
+  line-height: 1;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+@keyframes toast-enter {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
 

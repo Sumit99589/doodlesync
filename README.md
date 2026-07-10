@@ -1,4 +1,4 @@
-# Collaborative Canvas
+# Doodle Sync
 
 A real-time collaborative drawing canvas web application. Create or join rooms protected by password-based encryption, draw, write text, and chat with team members in real-time. There is no signup or registration required — the first user to enter a room sets its password.
 
